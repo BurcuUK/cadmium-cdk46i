@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CadRisk — CDK4/6i Risk Stratification | Research PoC v0.3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:#0B1220;color:#E8ECF0;min-height:100vh;}
+header{background:#121C2E;border-bottom:1px solid #1E2D45;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#3B82F6,#1D9E75);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+.logo-name{font-size:16px;font-weight:600;}
+.logo-sub{font-size:10px;color:#8895A7;}
+.badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#F59E0B;font-size:9px;font-weight:700;padding:3px 7px;border-radius:4px;}
+.warn-bar{background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.2);padding:7px 24px;font-size:11px;color:#F59E0B;text-align:center;}
+.main{max-width:1000px;margin:0 auto;padding:24px 16px;display:flex;gap:20px;flex-wrap:wrap;}
+.col-left{flex:1;min-width:300px;}
+.col-right{width:340px;min-width:280px;}
+@media(max-width:700px){.col-right{width:100%;}}
+.card{background:#121C2E;border:1px solid #1E2D45;border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.card-head{background:#1A2640;padding:14px 18px;border-bottom:1px solid #1E2D45;}
+.card-head .title{font-size:11px;font-weight:600;color:#8895A7;letter-spacing:.5px;text-transform:uppercase;}
+.card-head .sub{font-size:13px;color:#E8ECF0;margin-top:2px;}
+.card-body{padding:20px 18px;}
+.sec-label{font-size:10px;font-weight:700;color:#3B82F6;letter-spacing:.6px;text-transform:uppercase;margin-bottom:14px;}
+.field{margin-bottom:18px;}
+.field-top{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.field-top label{font-size:13px;color:#E8ECF0;font-weight:500;}
+.field-top small{font-size:11px;color:#8895A7;}
+.ev{width:17px;height:17px;border-radius:50%;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.35);color:#3B82F6;font-size:9px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;margin-left:auto;}
+.ev:hover{background:rgba(59,130,246,.3);}
+input[type=number]{width:100%;background:#1A2640;border:1px solid #1E2D45;border-radius:8px;color:#E8ECF0;font-size:15px;padding:10px 12px;outline:none;}
+input[type=number]:focus{border-color:#3B82F6;}
+input[type=number]::placeholder{color:#8895A7;font-size:13px;}
+select{width:100%;background:#1A2640;border:1px solid #1E2D45;border-radius:8px;color:#E8ECF0;font-size:14px;padding:10px 12px;outline:none;cursor:pointer;appearance:auto;}
+select:focus{border-color:#3B82F6;}
+.toggle{display:flex;gap:8px;}
+.tbtn{flex:1;padding:9px;border-radius:8px;border:1px solid #1E2D45;background:#1A2640;color:#8895A7;font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all .15s;}
+.tbtn.on{background:#3B82F6;border-color:#3B82F6;color:white;}
+.tbtn.on-red{background:#EF4444;border-color:#EF4444;color:white;}
+.cdbar{margin:10px 0 4px;}
+.cdbar-labels{display:flex;justify-content:space-between;font-size:10px;color:#8895A7;margin-bottom:5px;}
+.cdbar-track{height:8px;border-radius:4px;background:linear-gradient(to right,#1D9E75,#F59E0B 45%,#EF4444 80%,#991B1B);position:relative;}
+.cdbar-marker{position:absolute;top:-4px;width:16px;height:16px;border-radius:50%;background:white;border:2px solid #121C2E;box-shadow:0 0 0 2px white;transform:translateX(-50%);transition:left .4s;}
+.cdbar-zones{display:flex;justify-content:space-between;font-size:9px;color:#8895A7;margin-top:5px;}
+hr.div{border:none;border-top:1px solid #1E2D45;margin:18px 0;}
+.btn-calc{width:100%;padding:13px;background:linear-gradient(135deg,#3B82F6,#2563EB);border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-calc:hover{opacity:.9;}
+.btn-reset{width:100%;padding:9px;background:transparent;border:1px solid #1E2D45;border-radius:8px;color:#8895A7;font-size:13px;cursor:pointer;margin-top:8px;}
+.btn-reset:hover{color:#E8ECF0;border-color:#8895A7;}
+/* Results */
+.placeholder{padding:40px 20px;text-align:center;color:#8895A7;font-size:13px;line-height:1.6;}
+.placeholder .icon{font-size:32px;margin-bottom:10px;opacity:.4;}
+.result-body{padding:20px 18px;}
+.ring-wrap{display:flex;justify-content:center;margin:8px 0 18px;}
+.ring{width:130px;height:130px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid;}
+.ring-num{font-size:34px;font-weight:700;line-height:1;}
+.ring-lbl{font-size:10px;color:#8895A7;margin-top:3px;text-align:center;line-height:1.3;}
+.tier{text-align:center;margin-bottom:16px;}
+.tier-name{font-size:16px;font-weight:700;margin-bottom:3px;}
+.tier-sub{font-size:11px;color:#8895A7;}
+.factors{margin-top:14px;}
+.factor{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1E2D45;font-size:12px;}
+.factor:last-child{border-bottom:none;}
+.fn{color:#8895A7;}
+.fc{font-weight:600;font-size:11px;padding:2px 7px;border-radius:4px;}
+.fc-h{background:rgba(239,68,68,.15);color:#F87171;}
+.fc-m{background:rgba(245,158,11,.15);color:#F59E0B;}
+.fc-l{background:rgba(29,158,117,.15);color:#1D9E75;}
+.fc-n{background:rgba(136,149,167,.12);color:#8895A7;}
+.model-note{margin-top:14px;padding:11px 13px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;font-size:11px;color:rgba(100,160,220,.8);line-height:1.5;}
+.res-warn{margin-top:12px;padding:11px 13px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:11px;color:rgba(245,158,11,.8);line-height:1.5;}
+.info-cards{display:flex;gap:12px;flex-wrap:wrap;}
+.info-card{flex:1;min-width:120px;background:#121C2E;border:1px solid #1E2D45;border-radius:10px;padding:13px;}
+.ic-title{font-size:10px;color:#8895A7;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.ic-body{font-size:11px;color:#8895A7;line-height:1.5;}
+.ic-body strong{color:#E8ECF0;}
+/* Global tooltip */
+#gtt{display:none;position:fixed;width:272px;background:#1A2640;border:1px solid rgba(59,130,246,.45);border-radius:10px;padding:13px 15px;font-size:11px;line-height:1.55;color:#E8ECF0;z-index:99999;box-shadow:0 12px 40px rgba(0,0,0,.7);}
+#gtt .tt-title{font-size:9.5px;font-weight:700;color:#3B82F6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+#gtt .tt-row{display:flex;gap:5px;margin-bottom:3px;font-size:10.5px;}
+#gtt .tt-k{color:#8895A7;font-weight:600;min-width:60px;flex-shrink:0;}
+#gtt .tt-v{color:#E8ECF0;}
+#gtt .tt-cite{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.07);color:#8895A7;font-size:9.5px;font-style:italic;}
+#gtt .tt-x{float:right;cursor:pointer;color:#8895A7;font-size:12px;margin:-1px -3px 0 0;}
+footer{text-align:center;padding:20px;font-size:10px;color:#8895A7;border-top:1px solid #1E2D45;margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="gtt"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">Cd</div>
+    <div>
+      <div class="logo-name">CadRisk</div>
+      <div class="logo-sub">CDK4/6i Early Failure Risk Stratification</div>
+    </div>
+  </div>
+  <span class="badge">PROOF OF CONCEPT v0.3</span>
+</header>
+
+<div class="warn-bar">⚠ RESEARCH PROTOTYPE — NOT FOR CLINICAL USE · Coefficients are placeholder estimates · Click ⓘ for evidence basis · TÜSEB B2 — TRL 3 Demonstration</div>
+
+<div class="main">
+
+  <!-- LEFT -->
+  <div class="col-left">
+    <div class="card">
+      <div class="card-head">
+        <div class="title">Patient Input</div>
+        <div class="sub">HR+/HER2− Metastatic Breast Cancer — First-line CDK4/6i Candidate</div>
+      </div>
+      <div class="card-body">
+
+        <div class="sec-label">Primary Biomarker</div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>Urinary Cadmium / Creatinine</label>
+            <small>µg/g Cr · ICP-MS</small>
+            <div class="ev" data-key="cd">ⓘ</div>
+          </div>
+          <input type="number" id="cd" placeholder="e.g. 1.85" step="0.01" min="0" max="20">
+          <div class="cdbar" id="cdbar" style="display:none">
+            <div class="cdbar-labels"><span>Low</span><span>Moderate</span><span>High</span></div>
+            <div class="cdbar-track"><div class="cdbar-marker" id="cdmarker"></div></div>
+            <div class="cdbar-zones"><span>&lt;0.5</span><span>0.5–1.0</span><span>1.0–2.0</span><span>&gt;2.0 µg/g</span></div>
+          </div>
+        </div>
+
+        <hr class="div">
+        <div class="sec-label">Clinical Variables</div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>Liver Metastasis</label>
+            <div class="ev" data-key="liver">ⓘ</div>
+          </div>
+          <div class="toggle">
+            <div class="tbtn on" id="ln" onclick="setLiver('no')">No</div>
+            <div class="tbtn" id="ly" onclick="setLiver('yes')">Yes</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>ECOG Performance Status</label>
+            <div class="ev" data-key="ecog">ⓘ</div>
+          </div>
+          <select id="ecog">
+            <option value="0">0 — Fully active</option>
+            <option value="1" selected>1 — Restricted but ambulatory</option>
+            <option value="2">2 — Ambulatory, self-care only</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>Disease-free Interval</label>
+            <small>months from primary diagnosis</small>
+            <div class="ev" data-key="dfi">ⓘ</div>
+          </div>
+          <select id="dfi">
+            <option value="short">Short (&lt;24 months)</option>
+            <option value="mid" selected>Intermediate (24–60 months)</option>
+            <option value="long">Long (&gt;60 months)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>Ki-67</label>
+            <small>%</small>
+            <div class="ev" data-key="ki67">ⓘ</div>
+          </div>
+          <input type="number" id="ki67" placeholder="e.g. 25" step="1" min="0" max="100">
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label>Metastatic Sites</label>
+            <div class="ev" data-key="sites">ⓘ</div>
+          </div>
+          <select id="sites">
+            <option value="1">1 site</option>
+            <option value="2" selected>2 sites</option>
+            <option value="3">3 or more sites</option>
+          </select>
+        </div>
+
+        <button class="btn-calc" onclick="calc()">Calculate Risk Score</button>
+        <button class="btn-reset" onclick="reset()">Reset</button>
+      </div>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="ic-title">ICP-MS Facility</div>
+        <div class="ic-body"><strong>BİTAM</strong> · Necmettin Erbakan Üniversitesi<br>Agilent 7900 ICP-MS · SRM doğrulamalı analitik protokol</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Transcriptomic Evidence</div>
+        <div class="ic-body">GSE268699: <strong>MT2A ↑</strong> LFC+1.03 · <strong>GPER1 ↑</strong> LFC+0.90 in CDK4/6i resistance</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col-right">
+    <div class="card">
+      <div class="card-head">
+        <div class="title">Risk Output</div>
+        <div class="sub">6-month early failure probability</div>
+      </div>
+
+      <div id="ph" class="placeholder">
+        <div class="icon">⚗</div>
+        Enter values and press<br><strong>Calculate</strong><br><br>
+        <span style="font-size:11px;color:rgba(136,149,167,.6)">Click ⓘ to see evidence for each variable</span>
+      </div>
+
+      <div id="res" style="display:none">
+        <div class="result-body">
+          <div class="ring-wrap">
+            <div class="ring" id="ring">
+              <div class="ring-num" id="rnum">—</div>
+              <div class="ring-lbl">Risk Score<br>(0–100)</div>
+            </div>
+          </div>
+          <div class="tier">
+            <div class="tier-name" id="tname">—</div>
+            <div class="tier-sub" id="tsub">—</div>
+          </div>
+          <hr class="div">
+          <div style="font-size:11px;color:#8895A7;margin-bottom:10px;font-weight:600;">Factor Contributions</div>
+          <div class="factors" id="flist"></div>
+          <div class="model-note"><strong style="color:#3B82F6">Model:</strong> Weighted sum · placeholder coefficients<br>Variables pre-specified from CDK4/6i prognostic literature<br><strong style="color:#3B82F6">Next:</strong> Firth logistic regression on N=50 cohort</div>
+          <div class="res-warn">⚠ RESEARCH USE ONLY — Not a validated clinical tool</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>CadRisk PoC v0.3 · TÜSEB B2 2026 · Karaman Eğitim ve Onkoloji Hastanesi / Necmettin Erbakan Üniversitesi BİTAM</footer>
+
+<script>
+var liver='no';
+function setLiver(v){
+  liver=v;
+  document.getElementById('ln').className='tbtn'+(v==='no'?' on':'');
+  document.getElementById('ly').className='tbtn'+(v==='yes'?' on-red':'');
+}
+
+document.getElementById('cd').addEventListener('input',function(){
+  var v=parseFloat(this.value);
+  if(!isNaN(v)&&v>=0){
+    document.getElementById('cdbar').style.display='block';
+    document.getElementById('cdmarker').style.left=Math.min(Math.max(v/4*100,2),98)+'%';
+  } else document.getElementById('cdbar').style.display='none';
+});
+
+function calc(){
+  var cd=parseFloat(document.getElementById('cd').value);
+  if(isNaN(cd)||cd<0){alert('Please enter urinary cadmium value');return;}
+  var ecog=parseInt(document.getElementById('ecog').value);
+  var dfi=document.getElementById('dfi').value;
+  var ki67=parseFloat(document.getElementById('ki67').value);
+  var sites=document.getElementById('sites').value;
+
+  var score=0, factors=[];
+  var cdC=Math.min(cd/2*40,40); score+=cdC;
+  factors.push({n:'Urinary Cd/Cr ('+cd.toFixed(2)+' µg/g)',v:cd>=2?'High burden':cd>=1?'Moderate':'Low burden',t:cd>=2?'h':cd>=1?'m':'l'});
+  var lC=liver==='yes'?18:0; score+=lC;
+  factors.push({n:'Liver metastasis',v:liver==='yes'?'+18 pts':'Absent',t:liver==='yes'?'h':'n'});
+  var eC=ecog*8; score+=eC;
+  factors.push({n:'ECOG PS '+ecog,v:ecog===0?'Favourable':'+'+eC+' pts',t:ecog>=2?'h':ecog===1?'m':'l'});
+  var dC=dfi==='short'?15:dfi==='mid'?7:0; score+=dC;
+  factors.push({n:'Disease-free interval',v:dfi==='short'?'Short <24mo':dfi==='mid'?'Intermediate':'Long — favourable',t:dfi==='short'?'h':dfi==='mid'?'m':'l'});
+  if(!isNaN(ki67)){var kC=Math.min(ki67/100*15,15);score+=kC;factors.push({n:'Ki-67 ('+ki67+'%)',v:ki67>30?'High':'Moderate',t:ki67>30?'m':'l'});}
+  var sC=sites==='3'?8:sites==='2'?4:0; score+=sC;
+  factors.push({n:'Metastatic sites',v:sites==='3'?'≥3 sites':sites==='2'?'2 sites':'1 site',t:sites==='3'?'m':sites==='2'?'l':'n'});
+
+  score=Math.min(Math.round(score),100);
+  var col=score>=65?'#EF4444':score>=40?'#F59E0B':'#1D9E75';
+  var tier=score>=65?'High Risk':score>=40?'Intermediate Risk':'Lower Risk';
+  var sub=score>=65?'Consistent with early failure phenotype':score>=40?'Indeterminate — close monitoring recommended':'Profile not consistent with early failure';
+
+  document.getElementById('ph').style.display='none';
+  document.getElementById('res').style.display='block';
+  var ring=document.getElementById('ring');
+  ring.style.borderColor=col;
+  document.getElementById('rnum').style.color=col;
+  document.getElementById('rnum').textContent=score;
+  document.getElementById('tname').style.color=col;
+  document.getElementById('tname').textContent=tier;
+  document.getElementById('tsub').textContent=sub;
+
+  var tc={h:'fc-h',m:'fc-m',l:'fc-l',n:'fc-n'};
+  document.getElementById('flist').innerHTML=factors.map(function(f){
+    return '<div class="factor"><span class="fn">'+f.n+'</span><span class="fc '+tc[f.t]+'">'+f.v+'</span></div>';
+  }).join('');
+}
+
+function reset(){
+  document.getElementById('cd').value='';
+  document.getElementById('ecog').value='1';
+  document.getElementById('dfi').value='mid';
+  document.getElementById('ki67').value='';
+  document.getElementById('sites').value='2';
+  setLiver('no');
+  document.getElementById('cdbar').style.display='none';
+  document.getElementById('ph').style.display='block';
+  document.getElementById('res').style.display='none';
+}
+
+// Tooltip data
+var TD={
+  cd:{title:'Evidence Basis — Urinary Cadmium',rows:[
+    ['Role','Primary predictor — metalloestrogen cumulative body burden'],
+    ['Evidence','Nagata et al.: highest urinary Cd tertile OR 6.05 (95% CI 2.90–12.62) for breast cancer'],
+    ['Transcriptomic','GSE268699: MT2A LFC+1.03 (p=1.5×10⁻⁹); GPER1 LFC+0.90 (p=7×10⁻⁷) in CDK4/6i resistance'],
+    ['Method','ICP-MS at BİTAM · SRM-validated analytical protocol · Creatinine normalised · Single baseline before C1D1'],
+  ],cite:'Genchi et al. Int J Environ Res Public Health 2020;17:3782'},
+  liver:{title:'Evidence Basis — Liver Metastasis',rows:[
+    ['Role','Disease burden — independent PFS predictor in CDK4/6i trials'],
+    ['Evidence','MONALEESA-2, MONARCH-3: liver mets = shorter CDK4/6i PFS'],
+    ['Real-world','Corti et al. ESMO Open 2025: liver mets in majority of early abemaciclib relapsers'],
+  ],cite:'Corti et al. ESMO Open 2025;10:105126'},
+  ecog:{title:'Evidence Basis — ECOG PS',rows:[
+    ['Role','Universal prognostic variable — fitness and tolerability'],
+    ['Evidence','All CDK4/6i pivotal trials stratified randomisation by ECOG PS'],
+  ],cite:'Finn et al. NEJM 2016 · Hortobagyi et al. NEJM 2016'},
+  dfi:{title:'Evidence Basis — Disease-free Interval',rows:[
+    ['Role','Endocrine sensitivity proxy — short DFI = pre-existing resistance'],
+    ['Evidence','Razavi et al. SABCS 2024: DFI top predictor of early CDK4/6i failure'],
+    ['Protocol','DFI <24 months is an enrichment criterion in this study'],
+  ],cite:'Razavi et al. SABCS 2024 / AACR 2025'},
+  ki67:{title:'Evidence Basis — Ki-67',rows:[
+    ['Role','Proliferation index — higher = aggressive biology'],
+    ['Protocol','Ki-67 >30% is an enrichment criterion in this study'],
+    ['Mechanistic','Reflects E2F pathway — same axis activated in Cd-exposed cells (E2F/G2M program)'],
+  ],cite:'Kudo et al. Cancer Cell 2024'},
+  sites:{title:'Evidence Basis — Metastatic Sites',rows:[
+    ['Role','Disease burden proxy — more sites = higher heterogeneity'],
+    ['Protocol','≥3 metastatic sites is an enrichment criterion in this study'],
+  ],cite:'Foffano et al. Breast 2025'},
+};
+
+var gtt=document.getElementById('gtt'), activeBtn=null;
+function buildTT(k){
+  var d=TD[k]; if(!d)return'';
+  var rows=d.rows.map(function(r){return'<div class="tt-row"><span class="tt-k">'+r[0]+'</span><span class="tt-v">'+r[1]+'</span></div>';}).join('');
+  return'<span class="tt-x" onclick="closeTT()">✕</span><div class="tt-title">'+d.title+'</div>'+rows+'<div class="tt-cite">'+d.cite+'</div>';
+}
+function closeTT(){gtt.style.display='none';activeBtn=null;}
+document.querySelectorAll('.ev').forEach(function(btn){
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(activeBtn===btn){closeTT();return;}
+    activeBtn=btn;
+    gtt.innerHTML=buildTT(btn.getAttribute('data-key'));
+    gtt.style.display='block';
+    var r=btn.getBoundingClientRect(),w=276;
+    var left=r.right+8;
+    if(left+w>window.innerWidth-8)left=r.left-w-8;
+    var top=r.top-6;
+    if(top+280>window.innerHeight)top=window.innerHeight-290;
+    if(top<8)top=8;
+    gtt.style.left=Math.max(8,left)+'px';
+    gtt.style.top=top+'px';
+  });
+});
+document.addEventListener('click',function(e){if(!gtt.contains(e.target))closeTT();});
+</script>
+</body>
+</html>
